@@ -41,6 +41,6 @@ const EventCard = ({
       </div>
     </div>
   );
-};
+}
 
 export default EventCard;
