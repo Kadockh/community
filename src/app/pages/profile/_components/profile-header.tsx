@@ -32,7 +32,6 @@ interface ProfileHeaderProps {
 export function ProfileHeader({ userProfile }: ProfileHeaderProps) {
   return (
     <div className="relative">
-      {/* Cover Photo */}
       <div className="h-64 md:h-80 bg-gradient-to-r from-rose-400 via-purple-500 to-indigo-500 relative overflow-hidden">
         <Image
           src="/placeholder.svg?height=320&width=1200"
@@ -64,7 +63,6 @@ export function ProfileHeader({ userProfile }: ProfileHeaderProps) {
         </Dialog>
       </div>
 
-      {/* Profile Info */}
       <div className="relative px-4 md:px-8 pb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 -mt-16 relative z-10">
           <div className="relative">
@@ -88,7 +86,7 @@ export function ProfileHeader({ userProfile }: ProfileHeaderProps) {
             </Button>
           </div>
 
-          <div className="flex-1 sm:ml-4 mt-4 sm:mt-0">
+          <div className="flex-1 sm:ml-4 mt-4 sm:mt-20">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
@@ -97,11 +95,6 @@ export function ProfileHeader({ userProfile }: ProfileHeaderProps) {
                 <p className="text-lg text-gray-600 mt-1">
                   {userProfile.title}
                 </p>
-                <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                  <span>{userProfile.stats.posts} posts</span>
-                  <span>{userProfile.stats.friends} amigos</span>
-                  <span>{userProfile.stats.following} seguindo</span>
-                </div>
               </div>
               <div className="flex gap-2">
                 <Dialog>

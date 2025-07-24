@@ -24,7 +24,6 @@ interface ProfileSocialProps {
 export function ProfileSocial({ friends, suggestions }: ProfileSocialProps) {
   return (
     <div className="space-y-6">
-      {/* Friends Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -60,7 +59,6 @@ export function ProfileSocial({ friends, suggestions }: ProfileSocialProps) {
         </CardContent>
       </Card>
 
-      {/* Suggestions Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

@@ -1,7 +1,5 @@
-import { User, Cake, MapPin, Mail, Phone, Briefcase, Plus } from "lucide-react";
+import { User, Cake, MapPin, Mail, Phone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 interface ProfileAboutProps {
@@ -19,7 +17,6 @@ interface ProfileAboutProps {
 export function ProfileAbout({ userProfile }: ProfileAboutProps) {
   return (
     <div className="space-y-6">
-      {/* About Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -71,29 +68,6 @@ export function ProfileAbout({ userProfile }: ProfileAboutProps) {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Skills Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Briefcase className="h-5 w-5" />
-            Habilidades
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {userProfile.skills.map((skill) => (
-              <Badge key={skill} variant="secondary">
-                {skill}
-              </Badge>
-            ))}
-          </div>
-          <Button variant="outline" className="w-full mt-4" size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar Habilidade
-          </Button>
         </CardContent>
       </Card>
     </div>
