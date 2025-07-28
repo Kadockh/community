@@ -25,26 +25,78 @@ export const attendanceStatusEnum = pgEnum("attendance_status", [
 ]);
 
 // User
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar("name", { length: 255 }),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  phoneNumber: varchar("phone_number", { length: 20 }),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+export const usersTable = pgTable("users", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified")
+    .$defaultFn(() => false)
+    .notNull(),
+  phoneNumber: text("phone_number"),
+  image: text("image"),
+  createdAt: timestamp("created_at")
+    .$defaultFn(() => new Date())
+    .notNull(),
+  updatedAt: timestamp("updated_at")
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
+export const sessionsTable = pgTable("sessions", {
+  id: text("id").primaryKey(),
+  expiresAt: timestamp("expires_at").notNull(),
+  token: text("token").notNull().unique(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  userId: text("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+});
+
+export const accountsTable = pgTable("accounts", {
+  id: text("id").primaryKey(),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  idToken: text("id_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at"),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+export const verificationsTable = pgTable("verifications", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").$defaultFn(() => new Date()),
+  updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
 });
 
 // Role
-export const roles = pgTable("roles", {
+export const rolesTable = pgTable("roles", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 50 }).notNull().unique(),
 });
 
-export const userRoles = pgTable(
+export const userRolesTable = pgTable(
   "user_roles",
   {
-    userId: uuid("user_id").references(() => users.id),
-    roleId: uuid("role_id").references(() => roles.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id),
+    roleId: uuid("role_id")
+      .notNull()
+      .references(() => rolesTable.id),
   },
   (table) => {
     return {
@@ -54,7 +106,7 @@ export const userRoles = pgTable(
 );
 
 // Event
-export const events = pgTable("events", {
+export const eventsTable = pgTable("events", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
   description: text("description"),
@@ -66,16 +118,20 @@ export const events = pgTable("events", {
   location: text("location"),
   address: text("address"),
   speakerName: varchar("speaker_name", { length: 255 }),
-  createdBy: uuid("created_by").references(() => users.id),
+  createdBy: text("created_by").references(() => usersTable.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const eventAttendance = pgTable(
+export const eventAttendanceTable = pgTable(
   "event_attendance",
   {
-    userId: uuid("user_id").references(() => users.id),
-    eventId: uuid("event_id").references(() => events.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
     status: attendanceStatusEnum("status"),
     confirmedAt: timestamp("confirmed_at"),
     checkInTime: timestamp("check_in_time"),
@@ -89,34 +145,38 @@ export const eventAttendance = pgTable(
 );
 
 // Post
-export const postCategories = pgTable("post_categories", {
+export const postCategoriesTable = pgTable("post_categories", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 100 }).notNull(),
 });
 
-export const posts = pgTable("posts", {
+export const postsTable = pgTable("posts", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: varchar("title", { length: 255 }),
   content: text("content"),
-  categoryId: uuid("category_id").references(() => postCategories.id),
-  createdBy: uuid("created_by").references(() => users.id),
+  categoryId: uuid("category_id").references(() => postCategoriesTable.id),
+  createdBy: text("created_by").references(() => usersTable.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const postComments = pgTable("post_comments", {
+export const postCommentsTable = pgTable("post_comments", {
   id: uuid("id").primaryKey().defaultRandom(),
-  postId: uuid("post_id").references(() => posts.id),
-  userId: uuid("user_id").references(() => users.id),
+  postId: uuid("post_id").references(() => postsTable.id),
+  userId: text("user_id").references(() => usersTable.id),
   content: text("content"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const postLikes = pgTable(
+export const postLikesTable = pgTable(
   "post_likes",
   {
-    postId: uuid("post_id").references(() => posts.id),
-    userId: uuid("user_id").references(() => users.id),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => postsTable.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id),
     createdAt: timestamp("created_at").defaultNow(),
   },
   (table) => {
@@ -127,19 +187,23 @@ export const postLikes = pgTable(
 );
 
 // Media
-export const mediaFiles = pgTable("media_files", {
+export const mediaFilesTable = pgTable("media_files", {
   id: uuid("id").primaryKey().defaultRandom(),
   url: text("url").notNull(),
   type: mediaTypeEnum("type"),
-  uploadedBy: uuid("uploaded_by").references(() => users.id),
+  uploadedBy: text("uploaded_by").references(() => usersTable.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const postMedia = pgTable(
+export const postMediaTable = pgTable(
   "post_media",
   {
-    postId: uuid("post_id").references(() => posts.id),
-    mediaId: uuid("media_id").references(() => mediaFiles.id),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => postsTable.id),
+    mediaId: uuid("media_id")
+      .notNull()
+      .references(() => mediaFilesTable.id),
   },
   (table) => {
     return {
@@ -148,11 +212,15 @@ export const postMedia = pgTable(
   }
 );
 
-export const eventMedia = pgTable(
+export const eventMediaTable = pgTable(
   "event_media",
   {
-    eventId: uuid("event_id").references(() => events.id),
-    mediaId: uuid("media_id").references(() => mediaFiles.id),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    mediaId: uuid("media_id")
+      .notNull()
+      .references(() => mediaFilesTable.id),
   },
   (table) => {
     return {
@@ -162,10 +230,10 @@ export const eventMedia = pgTable(
 );
 
 // Meeting
-export const meetings = pgTable("meetings", {
+export const meetingsTable = pgTable("meetings", {
   id: uuid("id").primaryKey().defaultRandom(),
-  eventId: uuid("event_id").references(() => events.id),
-  userId: uuid("user_id").references(() => users.id),
+  eventId: uuid("event_id").references(() => eventsTable.id),
+  userId: text("user_id").references(() => usersTable.id),
   title: text("title").notNull(),
   description: text("description"),
   category: varchar("category", { length: 100 }),
@@ -178,18 +246,18 @@ export const meetings = pgTable("meetings", {
 });
 
 // Notification
-export const notifications = pgTable("notifications", {
+export const notificationsTable = pgTable("notifications", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").references(() => users.id),
+  userId: text("user_id").references(() => usersTable.id),
   content: text("content"),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // AuditLog
-export const auditLogs = pgTable("audit_logs", {
+export const auditLogsTable = pgTable("audit_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
-  adminId: uuid("admin_id").references(() => users.id),
+  adminId: text("admin_id").references(() => usersTable.id),
   action: varchar("action", { length: 100 }),
   targetTable: varchar("target_table", { length: 100 }),
   targetId: uuid("target_id"),
