@@ -23,6 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth-client";
 
 
 const registerSchema = z.object({
@@ -59,8 +60,13 @@ const SignUpForm = () => {
       password: "",
     },
   });
-  const handleSubmit = (values: z.infer<typeof registerSchema>) => {
-    console.log(values);
+  const handleSubmit = async (values: z.infer<typeof registerSchema>) => {
+    await authClient.signUp.email({
+      email: values.email,
+      password: values.password,
+      name: values.name,
+      callbackURL: "/profile",
+    });
   };
 
   return (
