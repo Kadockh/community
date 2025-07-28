@@ -6,7 +6,6 @@ interface TestimonialCardProps {
   role: string;
   text: string;
   imageUrl?: StaticImageData;
-
 }
 
 const TestimonialCard = ({
@@ -14,8 +13,6 @@ const TestimonialCard = ({
   role,
   text,
   imageUrl,
-
-
 }: TestimonialCardProps) => {
   return (
     <div className="flex-1 bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 max-w-md">

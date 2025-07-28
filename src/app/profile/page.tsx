@@ -1,6 +1,6 @@
 "use client";
 
-import { AppLayout } from "@/components/layout";
+import { AppLayout } from "@/app/profile/layout";
 import { ProfileHeader } from "./_components/profile-header";
 import { ProfileAbout } from "./_components/profile-about";
 import { ProfilePosts } from "./_components/profile-posts";

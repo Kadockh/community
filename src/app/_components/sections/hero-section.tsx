@@ -23,9 +23,9 @@ const HeroSection = () => {
                 </span>
               </h1>
               <p className="text-lg md:text-xl text-gray-600 max-w-lg mx-auto lg:mx-0 leading-relaxed">
-                Aliadas se propõe a acelerar projetos femininos. A
-                promover transformação no universo das mulheres. A trazer
-                conhecimento, inspiração e evolução.
+                Aliadas se propõe a acelerar projetos femininos. A promover
+                transformação no universo das mulheres. A trazer conhecimento,
+                inspiração e evolução.
               </p>
               <Button className="bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white rounded-full px-8 py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
                 Quero me Aliar
