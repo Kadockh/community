@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const registerSchema = z.object({
   name: z.string().trim().min(2, { message: "nome é obrigatório" }).max(50, {
@@ -52,6 +53,7 @@ const registerSchema = z.object({
 });
 
 const SignUpForm = () => {
+  const router = useRouter();
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -61,80 +63,91 @@ const SignUpForm = () => {
     },
   });
   const handleSubmit = async (values: z.infer<typeof registerSchema>) => {
-    await authClient.signUp.email({
-      email: values.email,
-      password: values.password,
-      name: values.name,
-      callbackURL: "/profile",
-    });
+    await authClient.signUp.email(
+      {
+        email: values.email,
+        password: values.password,
+        name: values.name,
+        callbackURL: "/profile",
+      },
+      {
+        onSuccess: () => {
+          toast.success("Conta criada com sucesso");
+          router.push("/profile");
+        },
+        onError: () => {
+          toast.error("Erro ao criar conta");
+        },
+      }
+    );
   };
 
   return (
     <Card>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
-        <CardHeader>
-          <CardTitle>Criar Conta</CardTitle>
-          <CardDescription>Crie uma conta para continuar</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome</FormLabel>
-                <FormControl>
-                  <Input placeholder="Digite seu nome" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Digite seu email"
-                    type="email"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Senha</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Digite sua senha"
-                    type="password"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </CardContent>
-        <CardFooter>
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              "Criar Conta"
+          <CardHeader>
+            <CardTitle>Criar Conta</CardTitle>
+            <CardDescription>Crie uma conta para continuar</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Digite seu nome" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Digite seu email"
+                      type="email"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Senha</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Digite sua senha"
+                      type="password"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+          <CardFooter>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                "Criar Conta"
               )}
             </Button>
           </CardFooter>

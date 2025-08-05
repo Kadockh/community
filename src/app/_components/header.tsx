@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -110,7 +111,7 @@ const Header = () => {
           <Button
             variant="outline"
             className="hidden md:flex border-rose-200 bg-transparent hover:bg-rose-50 hover:text-rose-700 transition-all duration-200">
-            Entrar
+            <Link href="/authentication">Entrar</Link>
           </Button>
 
           <Button

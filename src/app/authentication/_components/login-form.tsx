@@ -25,6 +25,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const loginSchema = z.object({
   email: z
@@ -49,6 +51,7 @@ const loginSchema = z.object({
 });
 
 const LoginForm = () => {
+  const router = useRouter();
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -58,11 +61,21 @@ const LoginForm = () => {
   });
 
   const handleSubmit = async (values: z.infer<typeof loginSchema>) => {
-    await authClient.signIn.email({
-      email: values.email,
-      password: values.password,
-      callbackURL: "/profile",
-    });
+    await authClient.signIn.email(
+      {
+        email: values.email,
+        password: values.password,
+        callbackURL: "/profile",
+      },
+      {
+        onSuccess: () => {
+          router.push("/profile");
+        },
+        onError: () => {
+          toast.error("Email ou senha inválidos");
+        },
+      }
+    );
   };
 
   return (
