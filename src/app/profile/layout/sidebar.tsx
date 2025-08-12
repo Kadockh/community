@@ -10,8 +10,11 @@ import {
   Settings,
   Bell,
   Users,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 interface SidebarItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -36,6 +39,16 @@ const sidebarItems: SidebarItem[] = [
 
 export function Sidebar({ activeItem = "perfil" }: SidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    try {
+      await authClient.signOut();
+    } finally {
+      setIsMobileMenuOpen(false);
+      router.push("/authentication");
+    }
+  };
 
   return (
     <>
@@ -45,7 +58,8 @@ export function Sidebar({ activeItem = "perfil" }: SidebarProps) {
           variant="outline"
           size="icon"
           onClick={() => setIsMobileMenuOpen(true)}
-          className="bg-white shadow-md">
+          className="bg-white shadow-md"
+        >
           <Menu className="h-4 w-4" />
         </Button>
       </div>
@@ -62,7 +76,8 @@ export function Sidebar({ activeItem = "perfil" }: SidebarProps) {
       <aside
         className={`fixed left-0 top-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out z-50 ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0`}>
+        } lg:translate-x-0`}
+      >
         <div className="p-6">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-xl font-bold text-gray-800">ALIADAS</h2>
@@ -70,7 +85,8 @@ export function Sidebar({ activeItem = "perfil" }: SidebarProps) {
               variant="ghost"
               size="icon"
               className="lg:hidden"
-              onClick={() => setIsMobileMenuOpen(false)}>
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -88,7 +104,8 @@ export function Sidebar({ activeItem = "perfil" }: SidebarProps) {
                       ? "bg-rose-600 text-white hover:bg-rose-700"
                       : "text-gray-600 hover:text-rose-600 hover:bg-rose-50"
                   }`}
-                  asChild>
+                  asChild
+                >
                   <a href={item.href}>
                     <item.icon className="h-4 w-4 mr-3" />
                     {item.label}
@@ -97,6 +114,16 @@ export function Sidebar({ activeItem = "perfil" }: SidebarProps) {
               );
             })}
           </nav>
+          <div className="mt-6">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-red-50"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-4 w-4 mr-3" />
+              Sair
+            </Button>
+          </div>
         </div>
       </aside>
     </>
