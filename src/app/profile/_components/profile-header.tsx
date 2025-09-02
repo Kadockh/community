@@ -12,7 +12,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ProfileForm from "./form";
+import { editProfile } from "@/actions/edit-profile";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface ProfileHeaderProps {
   userProfile: {
@@ -30,6 +33,32 @@ interface ProfileHeaderProps {
 }
 
 export function ProfileHeader({ userProfile }: ProfileHeaderProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleProfileUpdate = async (data: {
+    name: string;
+    title?: string;
+    email: string;
+    phone?: string;
+    bio?: string;
+  }) => {
+    try {
+      const result = await editProfile(data);
+
+      if (result.success) {
+        toast.success("Perfil atualizado com sucesso!");
+        setIsOpen(false);
+        // Recarregar a página para mostrar as mudanças
+        window.location.reload();
+      } else {
+        toast.error(result.error || "Erro ao atualizar perfil");
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar perfil:", error);
+      toast.error("Erro ao atualizar perfil");
+    }
+  };
+
   return (
     <div className="relative">
       <div className="h-64 md:h-80 bg-gradient-to-r from-rose-400 via-purple-500 to-indigo-500 relative overflow-hidden">
@@ -44,7 +73,8 @@ export function ProfileHeader({ userProfile }: ProfileHeaderProps) {
           <DialogTrigger asChild>
             <Button
               variant="secondary"
-              className="absolute top-4 right-4 gap-2">
+              className="absolute top-4 right-4 gap-2"
+            >
               <Camera className="h-4 w-4" />
               <span className="hidden sm:inline">Editar Capa</span>
             </Button>
@@ -81,7 +111,8 @@ export function ProfileHeader({ userProfile }: ProfileHeaderProps) {
             <Button
               size="icon"
               variant="secondary"
-              className="absolute bottom-0 right-0 rounded-full">
+              className="absolute bottom-0 right-0 rounded-full"
+            >
               <Camera className="h-4 w-4" />
             </Button>
           </div>
@@ -97,7 +128,7 @@ export function ProfileHeader({ userProfile }: ProfileHeaderProps) {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Dialog>
+                <Dialog open={isOpen} onOpenChange={setIsOpen}>
                   <DialogTrigger asChild>
                     <Button className="bg-rose-600 hover:bg-rose-700 gap-2">
                       <Edit3 className="h-4 w-4" />
@@ -111,63 +142,10 @@ export function ProfileHeader({ userProfile }: ProfileHeaderProps) {
                         Atualize suas informações pessoais.
                       </DialogDescription>
                     </DialogHeader>
-                    <Tabs defaultValue="basic" className="w-full">
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="basic">Básico</TabsTrigger>
-                        <TabsTrigger value="contact">Contato</TabsTrigger>
-                        <TabsTrigger value="professional">
-                          Profissional
-                        </TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="basic" className="space-y-4">
-                        <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <label className="text-right">Nome:</label>
-                            <input
-                              className="col-span-3 p-2 border rounded"
-                              defaultValue={userProfile.name}
-                            />
-                          </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <label className="text-right">Título:</label>
-                            <input
-                              className="col-span-3 p-2 border rounded"
-                              defaultValue={userProfile.title}
-                            />
-                          </div>
-                        </div>
-                      </TabsContent>
-                      <TabsContent value="contact" className="space-y-4">
-                        <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <label className="text-right">Email:</label>
-                            <input
-                              className="col-span-3 p-2 border rounded"
-                              defaultValue={userProfile.email}
-                            />
-                          </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <label className="text-right">Telefone:</label>
-                            <input
-                              className="col-span-3 p-2 border rounded"
-                              defaultValue={userProfile.phone}
-                            />
-                          </div>
-                        </div>
-                      </TabsContent>
-                      <TabsContent value="professional" className="space-y-4">
-                        <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <label className="text-right">Bio:</label>
-                            <textarea
-                              className="col-span-3 p-2 border rounded"
-                              rows={3}
-                              defaultValue={userProfile.bio}
-                            />
-                          </div>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
+                    <ProfileForm
+                      defaultValues={userProfile}
+                      onSubmit={handleProfileUpdate}
+                    />
                   </DialogContent>
                 </Dialog>
                 <Button variant="outline" size="icon">

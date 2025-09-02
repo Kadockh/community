@@ -10,9 +10,13 @@ import {
   json,
   primaryKey,
   pgEnum,
+  index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+// =====================
 // Enums
+// =====================
 export const mediaTypeEnum = pgEnum("media_type", [
   "image",
   "video",
@@ -23,69 +27,157 @@ export const attendanceStatusEnum = pgEnum("attendance_status", [
   "declined",
   "maybe",
 ]);
+export const auditActionEnum = pgEnum("audit_action", [
+  "create",
+  "update",
+  "delete",
+  "publish",
+  "signin",
+  "signout",
+]);
 
-// User
+// =====================
+// Users (BetterAuth-compatible)
+// Keep id as text because BetterAuth commonly uses string ids
+// =====================
 export const usersTable = pgTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified")
-    .$defaultFn(() => false)
-    .notNull(),
-  phoneNumber: text("phone_number"),
+  emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
-  createdAt: timestamp("created_at")
-    .$defaultFn(() => new Date())
+  phoneNumber: text("phone_number"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
     .notNull(),
-  updatedAt: timestamp("updated_at")
-    .$defaultFn(() => new Date())
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
     .notNull(),
 });
 
-export const sessionsTable = pgTable("sessions", {
-  id: text("id").primaryKey(),
-  expiresAt: timestamp("expires_at").notNull(),
-  token: text("token").notNull().unique(),
-  createdAt: timestamp("created_at").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
+// =====================
+// User Profile (1-1 with Users)
+// Only presentation/profile fields here
+// =====================
+export const userProfilesTable = pgTable("user_profiles", {
+  id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id")
     .notNull()
+    .unique()
     .references(() => usersTable.id, { onDelete: "cascade" }),
+  title: text("title"),
+  bio: text("bio"),
+  phone: text("phone"),
+  coverImage: text("cover_image"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
 });
 
-export const accountsTable = pgTable("accounts", {
-  id: text("id").primaryKey(),
-  accountId: text("account_id").notNull(),
-  providerId: text("provider_id").notNull(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
-  accessToken: text("access_token"),
-  refreshToken: text("refresh_token"),
-  idToken: text("id_token"),
-  accessTokenExpiresAt: timestamp("access_token_expires_at"),
-  refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
-  scope: text("scope"),
-  password: text("password"),
-  createdAt: timestamp("created_at").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
-});
+// =====================
+// Auth Tables (BetterAuth)
+// =====================
+export const sessionsTable = pgTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    token: text("token").notNull().unique(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => ({
+    ixUser: index("ix_sessions_user").on(table.userId),
+    ixExpires: index("ix_sessions_expires").on(table.expiresAt),
+  })
+);
 
-export const verificationsTable = pgTable("verifications", {
-  id: text("id").primaryKey(),
-  identifier: text("identifier").notNull(),
-  value: text("value").notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").$defaultFn(() => new Date()),
-  updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
-});
+export const accountsTable = pgTable(
+  "accounts",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", {
+      withTimezone: true,
+    }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", {
+      withTimezone: true,
+    }),
+    scope: text("scope"),
+    password: text("password"), // for email+password provider (hashed)
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => ({
+    uqProviderAccount: uniqueIndex("uq_provider_account").on(
+      table.providerId,
+      table.accountId
+    ),
+    ixUser: index("ix_accounts_user").on(table.userId),
+  })
+);
 
-// Role
+export const verificationsTable = pgTable(
+  "verifications",
+  {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(), // e.g. email or user id
+    value: text("value").notNull(), // token/code (store hashed if desired)
+    purpose: varchar("purpose", { length: 50 }).notNull(), // e.g. "email_verification" | "reset_password"
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => ({
+    uqIdentifierValue: uniqueIndex("uq_verification_identifier_value").on(
+      table.identifier,
+      table.value
+    ),
+    ixExpires: index("ix_verifications_expires").on(table.expiresAt),
+  })
+);
+
+// =====================
+// Roles & UserRoles
+// =====================
 export const rolesTable = pgTable("roles", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 50 }).notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const userRolesTable = pgTable(
@@ -93,34 +185,44 @@ export const userRolesTable = pgTable(
   {
     userId: text("user_id")
       .notNull()
-      .references(() => usersTable.id),
+      .references(() => usersTable.id, { onDelete: "cascade" }),
     roleId: uuid("role_id")
       .notNull()
-      .references(() => rolesTable.id),
+      .references(() => rolesTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.userId, table.roleId] }),
-    };
-  }
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.roleId] }),
+    ixRole: index("ix_user_roles_role").on(table.roleId),
+  })
 );
 
-// Event
+// =====================
+// Events & Attendance
+// =====================
 export const eventsTable = pgTable("events", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
   description: text("description"),
   category: varchar("category", { length: 100 }),
   maxParticipants: integer("max_participants"),
-  date: timestamp("date"),
-  time: varchar("time", { length: 20 }),
-  duration: varchar("duration", { length: 20 }),
+  startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+  endAt: timestamp("end_at", { withTimezone: true }),
   location: text("location"),
   address: text("address"),
   speakerName: varchar("speaker_name", { length: 255 }),
-  createdBy: text("created_by").references(() => usersTable.id),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdBy: text("created_by").references(() => usersTable.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
 });
 
 export const eventAttendanceTable = pgTable(
@@ -128,44 +230,91 @@ export const eventAttendanceTable = pgTable(
   {
     userId: text("user_id")
       .notNull()
-      .references(() => usersTable.id),
+      .references(() => usersTable.id, { onDelete: "cascade" }),
     eventId: uuid("event_id")
       .notNull()
-      .references(() => eventsTable.id),
-    status: attendanceStatusEnum("status"),
-    confirmedAt: timestamp("confirmed_at"),
-    checkInTime: timestamp("check_in_time"),
-    wasPresent: boolean("was_present"),
+      .references(() => eventsTable.id, { onDelete: "cascade" }),
+    status: attendanceStatusEnum("status").notNull().default("maybe"),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    checkInTime: timestamp("check_in_time", { withTimezone: true }),
+    wasPresent: boolean("was_present").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.userId, table.eventId] }),
-    };
-  }
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.eventId] }),
+    ixEvent: index("ix_event_attendance_event").on(table.eventId),
+  })
 );
 
-// Post
+// =====================
+// Posts, Categories, Tags
+// =====================
 export const postCategoriesTable = pgTable("post_categories", {
   id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar("name", { length: 100 }).notNull(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
 });
 
-export const postsTable = pgTable("posts", {
+export const postsTable = pgTable(
+  "posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: varchar("title", { length: 255 }).notNull(),
+    content: text("content"),
+    categoryId: uuid("category_id").references(() => postCategoriesTable.id, {
+      onDelete: "set null",
+    }),
+    createdBy: text("created_by").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+  },
+  (table) => ({
+    ixCategory: index("ix_posts_category").on(table.categoryId),
+    ixAuthor: index("ix_posts_author").on(table.createdBy),
+  })
+);
+
+export const tagsTable = pgTable("tags", {
   id: uuid("id").primaryKey().defaultRandom(),
-  title: varchar("title", { length: 255 }),
-  content: text("content"),
-  categoryId: uuid("category_id").references(() => postCategoriesTable.id),
-  createdBy: text("created_by").references(() => usersTable.id),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  name: varchar("name", { length: 50 }).notNull().unique(),
 });
+
+export const postTagsTable = pgTable(
+  "post_tags",
+  {
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => postsTable.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tagsTable.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.postId, table.tagId] }),
+  })
+);
 
 export const postCommentsTable = pgTable("post_comments", {
   id: uuid("id").primaryKey().defaultRandom(),
-  postId: uuid("post_id").references(() => postsTable.id),
-  userId: text("user_id").references(() => usersTable.id),
-  content: text("content"),
-  createdAt: timestamp("created_at").defaultNow(),
+  postId: uuid("post_id")
+    .notNull()
+    .references(() => postsTable.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "set null" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const postLikesTable = pgTable(
@@ -173,26 +322,36 @@ export const postLikesTable = pgTable(
   {
     postId: uuid("post_id")
       .notNull()
-      .references(() => postsTable.id),
+      .references(() => postsTable.id, { onDelete: "cascade" }),
     userId: text("user_id")
       .notNull()
-      .references(() => usersTable.id),
-    createdAt: timestamp("created_at").defaultNow(),
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.postId, table.userId] }),
-    };
-  }
+  (table) => ({
+    pk: primaryKey({ columns: [table.postId, table.userId] }),
+  })
 );
 
-// Media
+// =====================
+// Media & Attachments
+// =====================
 export const mediaFilesTable = pgTable("media_files", {
   id: uuid("id").primaryKey().defaultRandom(),
   url: text("url").notNull(),
-  type: mediaTypeEnum("type"),
-  uploadedBy: text("uploaded_by").references(() => usersTable.id),
-  createdAt: timestamp("created_at").defaultNow(),
+  type: mediaTypeEnum("type").notNull(),
+  sizeBytes: integer("size_bytes"),
+  mimeType: varchar("mime_type", { length: 100 }),
+  width: integer("width"),
+  height: integer("height"),
+  uploadedBy: text("uploaded_by").references(() => usersTable.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const postMediaTable = pgTable(
@@ -200,16 +359,14 @@ export const postMediaTable = pgTable(
   {
     postId: uuid("post_id")
       .notNull()
-      .references(() => postsTable.id),
+      .references(() => postsTable.id, { onDelete: "cascade" }),
     mediaId: uuid("media_id")
       .notNull()
-      .references(() => mediaFilesTable.id),
+      .references(() => mediaFilesTable.id, { onDelete: "cascade" }),
   },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.postId, table.mediaId] }),
-    };
-  }
+  (table) => ({
+    pk: primaryKey({ columns: [table.postId, table.mediaId] }),
+  })
 );
 
 export const eventMediaTable = pgTable(
@@ -217,50 +374,129 @@ export const eventMediaTable = pgTable(
   {
     eventId: uuid("event_id")
       .notNull()
-      .references(() => eventsTable.id),
+      .references(() => eventsTable.id, { onDelete: "cascade" }),
     mediaId: uuid("media_id")
       .notNull()
-      .references(() => mediaFilesTable.id),
+      .references(() => mediaFilesTable.id, { onDelete: "cascade" }),
   },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.eventId, table.mediaId] }),
-    };
-  }
+  (table) => ({
+    pk: primaryKey({ columns: [table.eventId, table.mediaId] }),
+  })
 );
 
-// Meeting
-export const meetingsTable = pgTable("meetings", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  eventId: uuid("event_id").references(() => eventsTable.id),
-  userId: text("user_id").references(() => usersTable.id),
-  title: text("title").notNull(),
-  description: text("description"),
-  category: varchar("category", { length: 100 }),
-  tags: text("tags").array(),
-  meetingVideo: text("meeting_video"),
-  coverImage: text("cover_image"),
-  recordingDate: timestamp("recording_date"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+// =====================
+// Meetings (+ tags, media)
+// =====================
+export const meetingsTable = pgTable(
+  "meetings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id").references(() => eventsTable.id, {
+      onDelete: "set null",
+    }),
+    userId: text("user_id").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+    title: text("title").notNull(),
+    description: text("description"),
+    category: varchar("category", { length: 100 }),
+    meetingVideo: text("meeting_video"),
+    coverImage: text("cover_image"),
+    recordingDate: timestamp("recording_date", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => ({
+    ixEvent: index("ix_meetings_event").on(table.eventId),
+  })
+);
 
-// Notification
-export const notificationsTable = pgTable("notifications", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").references(() => usersTable.id),
-  content: text("content"),
-  isRead: boolean("is_read").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+export const meetingTagsTable = pgTable(
+  "meeting_tags",
+  {
+    meetingId: uuid("meeting_id")
+      .notNull()
+      .references(() => meetingsTable.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tagsTable.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.meetingId, table.tagId] }),
+  })
+);
 
-// AuditLog
-export const auditLogsTable = pgTable("audit_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  adminId: text("admin_id").references(() => usersTable.id),
-  action: varchar("action", { length: 100 }),
-  targetTable: varchar("target_table", { length: 100 }),
-  targetId: uuid("target_id"),
-  timestamp: timestamp("timestamp").defaultNow(),
-  details: json("details"),
-});
+export const meetingMediaTable = pgTable(
+  "meeting_media",
+  {
+    meetingId: uuid("meeting_id")
+      .notNull()
+      .references(() => meetingsTable.id, { onDelete: "cascade" }),
+    mediaId: uuid("media_id")
+      .notNull()
+      .references(() => mediaFilesTable.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.meetingId, table.mediaId] }),
+  })
+);
+
+// =====================
+// Notifications
+// =====================
+export const notificationsTable = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 50 }).notNull(), // e.g. EVENT_INVITE, POST_COMMENT
+    targetType: varchar("target_type", { length: 50 }), // e.g. "event" | "post" | "meeting"
+    targetId: text("target_id"),
+    content: text("content"),
+    isRead: boolean("is_read").notNull().default(false),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdBy: text("created_by").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    ixUser: index("ix_notifications_user").on(table.userId),
+    ixIsRead: index("ix_notifications_is_read").on(table.isRead),
+  })
+);
+
+// =====================
+// Audit Logs
+// =====================
+export const auditLogsTable = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorId: text("actor_id").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+    action: auditActionEnum("action").notNull(),
+    targetType: varchar("target_type", { length: 100 }).notNull(),
+    targetId: text("target_id"),
+    details: json("details"),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    ixTarget: index("ix_audit_target").on(table.targetType, table.targetId),
+    ixActor: index("ix_audit_actor").on(table.actorId),
+  })
+);
