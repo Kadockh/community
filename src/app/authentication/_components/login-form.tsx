@@ -79,28 +79,35 @@ const LoginForm = () => {
   };
 
   return (
-    <Card>
+    <Card className="bg-white/90 backdrop-blur-sm border-rose-200 shadow-xl">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-2">
-          <CardHeader>
-            <CardTitle>Login</CardTitle>
-            <CardDescription>Faça login para continuar</CardDescription>
+          <CardHeader className="text-center pb-6">
+            <CardTitle className="text-2xl font-bold text-gray-800">
+              Entrar
+            </CardTitle>
+            <CardDescription className="text-gray-600">
+              Faça login para acessar sua conta
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-gray-700 font-medium">
+                    Email
+                  </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Digite seu email"
                       type="email"
+                      className="border-rose-200 focus:border-rose-400 focus:ring-rose-400 transition-colors"
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-rose-600" />
                 </FormItem>
               )}
             />
@@ -109,27 +116,45 @@ const LoginForm = () => {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Senha</FormLabel>
+                  <FormLabel className="text-gray-700 font-medium">
+                    Senha
+                  </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Digite sua senha"
                       type="password"
+                      className="border-rose-200 focus:border-rose-400 focus:ring-rose-400 transition-colors"
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-rose-600" />
                 </FormItem>
               )}
             />
           </CardContent>
-          <CardFooter className="flex flex-col gap-2">
-            <Button type="submit" className="w-full">
+          <CardFooter className="flex flex-col gap-4 pt-6">
+            <Button
+              type="submit"
+              className="w-full bg-rose-600 hover:bg-rose-700 text-white font-medium py-3 transition-all duration-200 shadow-lg hover:shadow-xl"
+              disabled={form.formState.isSubmitting}
+            >
               {form.formState.isSubmitting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Entrando...
+                </>
               ) : (
                 "Entrar"
               )}
             </Button>
+            <div className="text-center">
+              <p className="text-sm text-gray-500">
+                Não tem uma conta?{" "}
+                <span className="text-rose-600 font-medium cursor-pointer hover:text-rose-700 transition-colors">
+                  Criar conta
+                </span>
+              </p>
+            </div>
           </CardFooter>
         </form>
       </Form>
