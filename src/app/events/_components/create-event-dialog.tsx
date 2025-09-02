@@ -49,7 +49,7 @@ const createEventSchema = z.object({
     .string()
     .min(1, "Local é obrigatório")
     .max(200, "Local muito longo"),
-  maxParticipants: z.coerce
+  maxParticipants: z
     .number()
     .min(1, "Mínimo 1 participante")
     .max(1000, "Máximo 1000 participantes"),

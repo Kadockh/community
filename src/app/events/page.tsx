@@ -30,7 +30,7 @@ const EventsPage = async () => {
           {isAdmin && <CreateEventButton />}
         </div>
 
-        <EventsList userId={session.user.id} isAdmin={isAdmin} />
+        <EventsList isAdmin={isAdmin} />
       </div>
     </AppLayout>
   );
